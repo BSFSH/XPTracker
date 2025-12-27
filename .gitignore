@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyCharm
+.idea/
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Testing
+.pytest_cache/
+htmlcov/
+stack_log.txt
