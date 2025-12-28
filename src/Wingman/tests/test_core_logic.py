@@ -1,5 +1,5 @@
 import pytest
-from Wingman.core.xp_parser import parse_xp_message
+from Wingman.core.parser import parse_xp_message
 from Wingman.core.input_receiver import InputReceiver
 
 

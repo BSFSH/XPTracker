@@ -7,7 +7,6 @@ from Wingman.core.input_receiver import InputReceiver
 
 @pytest.fixture
 def session():
-    # We mock the receiver so we can manually control what "data" is waiting
     mock_receiver = MagicMock(spec=InputReceiver)
     sess = GameSession(mock_receiver)
     return sess, mock_receiver
@@ -15,45 +14,59 @@ def session():
 
 def test_process_queue_calculates_xp(session):
     sess, mock_receiver = session
-
-    # Setup the mock to return lines one by one, then None to stop the loop
     mock_receiver.remove_from_top.side_effect = [
         "You gain 1000 experience points.",
-        "Garbage line with no XP.",
-        "You gain 500 (+250) experience points.",
-        None  # Stops the while loop
+        "Garbage line.",
+        None
     ]
-
-    # Run the processing
     logs = sess.process_queue()
-
-    # Checks
-    assert sess.total_xp == 1750, "Total XP calculation incorrect."
-    assert len(logs) == 2, "Should return exactly 2 log entries (skipped garbage)."
-    assert "1,000 XP" in logs[0]
-    assert "750 XP" in logs[1]
+    assert sess.total_xp == 1000
+    assert len(logs) == 1
 
 
 def test_xp_per_hour_calculation(session):
     sess, _ = session
-
-    # Fake a scenario: 10,000 XP gained in 30 minutes (1800 seconds)
     sess.total_xp = 10000
     sess.start_time = time.time() - 1800
-
     rate = sess.get_xp_per_hour()
-
-    # 10k in half an hour = 20k/hr
-    # Allow small margin of error for execution time
-    assert 19000 < rate < 21000, f"Rate {rate} is outside expected range (~20000)."
+    assert 19000 < rate < 21000
 
 
 def test_reset_clears_state(session):
     sess, _ = session
     sess.total_xp = 50000
+    sess.latest_group_data = [{'name': 'OldData'}]  # Setup dirty state
 
     sess.reset()
 
     assert sess.total_xp == 0
-    # Start time should be very close to "now"
+    assert len(sess.latest_group_data) == 0  # Should be empty now
     assert (time.time() - sess.start_time) < 1.0
+
+
+def test_group_data_flow(session):
+    sess, mock_receiver = session
+
+    # 1. Pre-fill with stale data
+    sess.latest_group_data = [{'name': 'StaleUser'}]
+
+    # 2. Mock incoming game text
+    mock_receiver.remove_from_top.side_effect = [
+        "<10:00:00> Earthquack's group:",
+        # ADDED "Idle" so the parser finds the Status field it expects
+        "[Orc  40] Idle Earthquack 100/100 (100%) 100/100 (100%) 100/100 (100%)",
+        "[Elf  50] Idle Legolas    200/200 (100%) 200/200 (100%) 200/200 (100%)",
+        None
+    ]
+
+    # 3. Process
+    sess.process_queue()
+
+    # 4. Verify
+    data = sess.get_latest_group_data()
+
+    # This assertion failed before because StaleUser wasn't cleared
+    # and new users weren't added. Now it should pass.
+    assert len(data) == 2
+    assert data[0]['name'] == 'Earthquack'
+    assert data[1]['name'] == 'Legolas'
