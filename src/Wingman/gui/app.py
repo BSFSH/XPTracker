@@ -1,4 +1,5 @@
 import tkinter as tk
+import time
 from tkinter import ttk
 from Wingman.core.session import GameSession
 
@@ -6,6 +7,8 @@ from Wingman.core.session import GameSession
 class XPTrackerApp:
     def __init__(self, session: GameSession):
         self.session = session
+
+        self.last_stat_update = 0
 
         self.root = tk.Tk()
         self.root.title("Wingman - Olmran")
@@ -72,24 +75,34 @@ class XPTrackerApp:
             self.tree.delete(item)
 
     def update_gui(self):
-        # 1. Process Queue (Standard XP logs still happen in background)
-        # We assume session.process_queue() handles parsing internally
+        # --- FAST UPDATES (Every 100ms) ---
+        # 1. Process Queue (Instant logs)
         self.session.process_queue()
 
-        # 2. Update Group Dashboard
-        # You need to implement get_latest_group_data() in your session!
+        # 2. Update Group Dashboard (Instant status changes)
         group_data = self.session.get_latest_group_data()
         if group_data:
             self._refresh_tree(group_data)
 
-        # 3. Update Variables
+        # 3. Update Total XP (Instant gratification)
+        # We update the total immediately, so it matches the log text appearing
         current_xp = self.session.total_xp
-        current_rate = self.session.get_xp_per_hour()
+        self.var_total_xp.set(f"Total XP: {current_xp:,}")
 
-        self.var_total_xp.set(f"Total: {current_xp:,}")
-        self.var_xp_hr.set(f"{current_rate:,} /hr")
-        self.var_duration.set(self.session.get_duration_str())
+        # --- THROTTLED UPDATES (Every 1.0s) ---
+        now = time.time()
+        if now - self.last_stat_update >= 1.0:
+            # Update XP/Hr
+            current_rate = self.session.get_xp_per_hour()
+            self.var_xp_hr.set(f"{current_rate:,} xp / hr")
 
+            # Update Duration Timer
+            self.var_duration.set(self.session.get_duration_str())
+
+            # Reset the timer
+            self.last_stat_update = now
+
+        # Schedule next loop
         self.root.after(100, self.update_gui)
 
     def _refresh_tree(self, members):

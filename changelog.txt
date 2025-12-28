@@ -1,4 +1,12 @@
-## [Unreleased 1.1]
+## [Unreleased 0.2.1]
+### Added
+- Divided UI updates into "fast" (xp total) and "rate limited" (xp/hr). Rate limited updates are limited to 1/s.
+- Implemented 'run.py' to streamline startup process
+
+### Updated
+- Fixed UI labels
+
+## [Unreleased 0.2]
 ### Added
 - Group status display
 
