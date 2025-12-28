@@ -1,6 +1,6 @@
-# Olmran XP Tracker
+# Wingman
 
-A real-time Experience Point tracker for MUDs (Multi-User Dungeons) that intercepts network traffic to calculate XP/hr, track kills, and predict level-up times.
+A suite of enhancements for the UI of the text-based game, Olmran
 
 ## Prerequisites (Critical)
 
@@ -15,8 +15,8 @@ Because this tool sniffs network packets to read game data, you need two things 
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/yourusername/xp-tracker.git](https://github.com/yourusername/xp-tracker.git)
-    cd xp-tracker
+    git clone https://github.com/BSFSH/Wingman
+    cd Wingman
     ```
 
 2.  **Install Python dependencies:**
