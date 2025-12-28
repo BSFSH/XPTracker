@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
-from XPTracker.core.network_listener import NetworkListener
-from XPTracker.core.input_receiver import InputReceiver
+from Wingman.core.network_listener import NetworkListener
+from Wingman.core.input_receiver import InputReceiver
 from scapy.all import IP, TCP
 
 

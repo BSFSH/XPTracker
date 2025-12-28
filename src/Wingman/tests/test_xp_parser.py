@@ -1,5 +1,5 @@
 import pytest
-from XPTracker.core.xp_parser import parse_xp_message
+from Wingman.core.xp_parser import parse_xp_message
 
 class TestXPParser:
 

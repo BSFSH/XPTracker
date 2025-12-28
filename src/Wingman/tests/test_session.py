@@ -1,8 +1,8 @@
 import time
 import pytest
 from unittest.mock import MagicMock
-from XPTracker.core.session import GameSession
-from XPTracker.core.input_receiver import InputReceiver
+from Wingman.core.session import GameSession
+from Wingman.core.input_receiver import InputReceiver
 
 
 @pytest.fixture

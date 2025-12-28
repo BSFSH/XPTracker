@@ -1,7 +1,7 @@
 import threading
 import re
 from scapy.all import sniff, IP, TCP
-from XPTracker.core.input_receiver import InputReceiver
+from Wingman.core.input_receiver import InputReceiver
 
 
 class NetworkListener:

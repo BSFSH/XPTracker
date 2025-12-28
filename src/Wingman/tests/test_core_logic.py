@@ -1,6 +1,6 @@
 import pytest
-from XPTracker.core.xp_parser import parse_xp_message
-from XPTracker.core.input_receiver import InputReceiver
+from Wingman.core.xp_parser import parse_xp_message
+from Wingman.core.input_receiver import InputReceiver
 
 
 # --- TEST 1: The XP Parser ---

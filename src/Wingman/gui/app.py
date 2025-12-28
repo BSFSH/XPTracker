@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import tkinter.scrolledtext as scrolledtext  # Import this
-from XPTracker.core.session import GameSession
+from Wingman.core.session import GameSession
 
 
 class XPTrackerApp:

@@ -1,5 +1,5 @@
 import pytest
-from XPTracker.core.input_receiver import InputReceiver
+from Wingman.core.input_receiver import InputReceiver
 
 @pytest.fixture
 def receiver():

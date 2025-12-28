@@ -1,8 +1,8 @@
 import threading
-from XPTracker.core.input_receiver import InputReceiver
-from XPTracker.core.session import GameSession
-from XPTracker.core.network_listener import NetworkListener
-from XPTracker.gui.app import XPTrackerApp
+from Wingman.core.input_receiver import InputReceiver
+from Wingman.core.session import GameSession
+from Wingman.core.network_listener import NetworkListener
+from Wingman.gui.app import XPTrackerApp
 
 if __name__ == "__main__":
     # Create the SHARED receiver
