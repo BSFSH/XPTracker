@@ -53,9 +53,9 @@ def test_group_data_flow(session):
     # 2. Mock incoming game text
     mock_receiver.remove_from_top.side_effect = [
         "<10:00:00> Earthquack's group:",
-        # ADDED "Idle" so the parser finds the Status field it expects
-        "[Orc  40] Idle Earthquack 100/100 (100%) 100/100 (100%) 100/100 (100%)",
-        "[Elf  50] Idle Legolas    200/200 (100%) 200/200 (100%) 200/200 (100%)",
+        # Changed status to valid 'B'
+        "[Orc  40] B Earthquack 100/100 (100%) 100/100 (100%) 100/100 (100%)",
+        "[Elf  50] B Legolas    200/200 (100%) 200/200 (100%) 200/200 (100%)",
         None
     ]
 

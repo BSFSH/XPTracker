@@ -11,7 +11,7 @@ class XPTrackerApp:
         self.last_stat_update = 0
 
         self.root = tk.Tk()
-        self.root.title("Wingman - Olmran")
+        self.root.title("Wingman - 0.2.3")
         self.root.geometry("500x350")  # Widened slightly for the columns
         self.root.attributes("-topmost", True)
 
@@ -47,12 +47,13 @@ class XPTrackerApp:
         lbl_dash.pack(anchor="w", pady=(5, 0))
 
         # Define Columns
-        columns = ("cls", "lvl", "name", "hp", "fat", "pwr")
+        columns = ("cls", "lvl", "status", "name", "hp", "fat", "pwr")  # Added "status"
         self.tree = ttk.Treeview(main_frame, columns=columns, show="headings", height=8)
 
         # Setup Headings
         self.tree.heading("cls", text="Class")
         self.tree.heading("lvl", text="Lvl")
+        self.tree.heading("status", text="Sts")  # Short header to save space
         self.tree.heading("name", text="Name")
         self.tree.heading("hp", text="HP")
         self.tree.heading("fat", text="Fatigue")
@@ -61,6 +62,7 @@ class XPTrackerApp:
         # Setup Columns Widths
         self.tree.column("cls", width=50, anchor="center")
         self.tree.column("lvl", width=40, anchor="center")
+        self.tree.column("status", width=30, anchor="center")  # Narrow column
         self.tree.column("name", width=100, anchor="w")
         self.tree.column("hp", width=80, anchor="center")
         self.tree.column("fat", width=80, anchor="center")
@@ -113,8 +115,8 @@ class XPTrackerApp:
 
         # Refill
         for m in members:
-            # Match keys from parser dictionary
-            values = (m['cls'], m['lvl'], m['name'], m['hp'], m['fat'], m['pwr'])
+            # Add m['status'] to the tuple
+            values = (m['cls'], m['lvl'], m['status'], m['name'], m['hp'], m['fat'], m['pwr'])
             self.tree.insert("", tk.END, values=values)
 
     def run(self):

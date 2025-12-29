@@ -28,7 +28,7 @@ class TestGroupParser:
         # This simulates a raw chunk from the game
         raw_block = """
         [ Class         Lvl] Status      Name                 Hits                Fat                Power             
-        [Orc            40]           Earthquack           227/ 394 ( 57%)     354/ 394 ( 89%)     326/ 326 (100%)    
+        [Orc            40]  B        Earthquack           227/ 394 ( 57%)     354/ 394 ( 89%)     326/ 326 (100%)    
         [Kenku          70]           Big                  550/ 550 (100%)     538/ 550 ( 97%)      63/  73 ( 86%)  
         """
 
@@ -40,6 +40,7 @@ class TestGroupParser:
         p1 = results[0]
         assert p1['cls'] == "Orc"
         assert p1['lvl'] == "40"
+        assert results[0]['status'] == "B"
         assert p1['name'] == "Earthquack"
         assert p1['hp'] == "227/ 394"
 
@@ -52,12 +53,12 @@ class TestGroupParser:
         """
         Tests parsing a single line, which is how the session often processes data.
         """
-        line = "[Human          15]  Resting  HeroName             100/ 100 (100%)     100/ 100 (100%)     50/ 50 (100%)"
+        line = "[Kenku          58]  B        Quacamole            360/ 510 ( 70%)    479/ 510 ( 93%)     37/  69 ( 53%)  "
         results = parse_group_status(line)
 
         assert len(results) == 1
-        assert results[0]['status'] == "Resting"
-        assert results[0]['name'] == "HeroName"
+        assert results[0]['status'] == "B"
+        assert results[0]['name'] == "Quacamole"
 
     def test_ignores_headers_and_noise(self):
         """
@@ -66,3 +67,15 @@ class TestGroupParser:
         line = "[ Class         Lvl] Status      Name                 Hits                Fat                Power"
         results = parse_group_status(line)
         assert len(results) == 0
+
+    def test_parse_multi_status_flags(self):
+        """
+        Case: Status column contains multiple flags (e.g., 'BP' for Bleeding + Poisoned).
+        """
+        line = "[Kenku          58]  B P      Quacamole            360/ 510 ( 70%)     479/ 510 ( 93%)      37/  69 ( 53%)"
+
+        results = parse_group_status(line)
+
+        assert len(results) == 1
+        assert results[0]['status'] == "B P"
+        assert results[0]['name'] == "Quacamole"
