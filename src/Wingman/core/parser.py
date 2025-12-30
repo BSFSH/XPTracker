@@ -32,10 +32,10 @@ def parse_group_status(text_block: str) -> List[Dict[str, Any]]:
     pattern = re.compile(
         r"\[\s*(?P<cls>[A-Za-z]+)\s+(?P<lvl>\d+)\s*\]"  # [Class Lvl]
         r"\s+"  # Space after bracket
-        r"(?P<status>(?:[BPDS]\s)*)"  # Status: Only B, P, D, or S followed by a space (optional, repeated)
-        r"(?P<name>.+?)"  # Name: Capture anything (including spaces) non-greedily...
-        r"\s+"  # ...until the space before the HP
-        r"(?P<hp>\d+/\s*\d+)"  # HP (This anchors the end of the name)
+        r"(?P<status>(?:[BPDS]\s)*)"  # Status: Only B, P, D, S followed by space
+        r"(?P<name>.+?)"  # Name: Capture anything (lazy match)
+        r"\s+"  # Space before HP (anchors the name end)
+        r"(?P<hp>\d+/\s*\d+)"  # HP
         r".*?"  # Skip percent
         r"\s+(?P<fat>\d+/\s*\d+)"  # Fat
         r".*?"  # Skip percent
@@ -47,9 +47,14 @@ def parse_group_status(text_block: str) -> List[Dict[str, Any]]:
         if "]" in line and "/" in line:
             match = pattern.search(line)
             if match:
-                # NEW: We must .strip() the status because '.*?' might catch surrounding spaces
                 data = match.groupdict()
+
+                # NEW: Exclude pets/mobs immediately
+                if data['cls'].lower() == 'mob':
+                    continue
+
                 data['status'] = data['status'].strip()
+                data['name'] = data['name'].strip()
                 members.append(data)
 
     return members

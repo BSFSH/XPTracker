@@ -1,6 +1,7 @@
 ## [Unreleased 0.2.4]
 ### Updated
 - Fixed group regex to handle pets
+- And them promptly changed pets (class == mob) to be excluded from the display
 
 ## [Unreleased 0.2.3]
 ### Added
