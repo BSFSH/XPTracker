@@ -1,4 +1,4 @@
-## [Unreleased 0.2.4]
+## [Unreleased 0.2.5]
 ### Added
 - Settings menu widget, dark mode, always on top toggles
 - Pause button
