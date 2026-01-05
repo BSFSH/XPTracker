@@ -3,7 +3,8 @@ import time
 import ctypes
 from tkinter import ttk
 from Wingman.core.session import GameSession
-
+from Wingman.core.group import Group
+from Wingman.core.character import Character
 
 class XPTrackerApp:
     def __init__(self, session: GameSession):
@@ -90,7 +91,7 @@ class XPTrackerApp:
 
         self.tree.heading("cls", text="Class");
         self.tree.heading("lvl", text="Lvl")
-        self.tree.heading("status", text="Sts");
+        self.tree.heading("status", text="Status");
         self.tree.heading("name", text="Name")
         self.tree.heading("hp", text="HP");
         self.tree.heading("fat", text="Fatigue")
@@ -168,8 +169,9 @@ class XPTrackerApp:
         self.root.after(100, self.update_gui)
         if self.paused: return
         self.session.process_queue()
-        group_data = self.session.get_latest_group_data()
-        if group_data: self._refresh_tree(group_data)
+        group_data = self.session.Group
+        if group_data or self.session.shouldRefreshGroupDisplay:
+            self._refresh_tree(group_data)
         current_xp = self.session.total_xp
         self.var_total_xp.set(f"Total XP: {current_xp:,}")
         now = time.time()
@@ -179,12 +181,31 @@ class XPTrackerApp:
             self.var_duration.set(self.session.get_duration_str())
             self.last_stat_update = now
 
-    def _refresh_tree(self, members):
+
+    def _refresh_tree(self, group: Group):
+        def isCurrentPartyMember(m: Character):
+            return m.ClassProfession != ""
+
+        def isNewlyJoinedPartyMember(m: Character):
+            return m.ClassProfession == "" and m.IsNewGroupFollower
+
         for item in self.tree.get_children():
             self.tree.delete(item)
-        for m in members:
-            values = (m['cls'], m['lvl'], m['status'], m['name'], m['hp'], m['fat'], m['pwr'])
-            self.tree.insert("", tk.END, values=values)
+        for m in group.Members:
+            if isCurrentPartyMember(m):
+                values = (m.ClassProfession, m.Level, str(m.Status), m.Name, str(m.Hp), str(m.Fat), str(m.Pow))
+                item_id = self.tree.insert('', tk.END, iid=m.Name, values=values)
+                self.tree.see(item_id)
+            elif isNewlyJoinedPartyMember(m):
+                suffixToMakeUnique = ''
+                while self.tree.exists(m.Name + suffixToMakeUnique):
+                    suffixToMakeUnique += '+'
+
+                values = ('__', "__", "__", m.Name, '__', '__', '__')
+                item_id = self.tree.insert('', tk.END, iid=m.Name + suffixToMakeUnique, values=values)
+                self.tree.see(item_id)
+        
+        self.session.shouldRefreshGroupDisplay = False
 
     def run(self):
         self.root.mainloop()

@@ -1,6 +1,6 @@
 import pytest
-from Wingman.core.parser import parse_xp_message, parse_group_status
-
+from Wingman.core.parser import parse_xp_message, parse_group_status, parse_leaveGroup
+from Wingman.core.status_indicator import StatusIndicator
 
 class TestXPParser:
     def test_parse_compound_xp(self):
@@ -38,16 +38,16 @@ class TestGroupParser:
 
         # Check first member details
         p1 = results[0]
-        assert p1['cls'] == "Orc"
-        assert p1['lvl'] == "40"
-        assert results[0]['status'] == "B"
-        assert p1['name'] == "Earthquack"
-        assert p1['hp'] == "227/ 394"
+        assert p1.ClassProfession == "Orc"
+        assert p1.Level == 40
+        assert p1.Status == "B"
+        assert p1.Name == "Earthquack"
+        assert p1.Hp == "227/ 394"
 
         # Check second member details
         p2 = results[1]
-        assert p2['cls'] == "Kenku"
-        assert p2['name'] == "Big"
+        assert p2.ClassProfession == "Kenku"
+        assert p2.Name == "Big"
 
     def test_parse_single_line_update(self):
         """
@@ -57,8 +57,8 @@ class TestGroupParser:
         results = parse_group_status(line)
 
         assert len(results) == 1
-        assert results[0]['status'] == "B"
-        assert results[0]['name'] == "Quacamole"
+        assert results[0].Status == "B"
+        assert results[0].Name == "Quacamole"
     
     @pytest.mark.parametrize("input,expected", argvalues= [
                                         ("[Sin         74] B       Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", "B"),
@@ -74,7 +74,7 @@ class TestGroupParser:
     )
     def test_individual_status_flags(self, input, expected):
         results = parse_group_status(input)
-        actual = results[0]['status']
+        actual = results[0].Status
 
         assert actual == expected
 
@@ -87,17 +87,17 @@ class TestGroupParser:
         assert len(results) == 0
 
     @pytest.mark.parametrize("input,expected", argvalues=[
-                                        ("[Sin         74] B P     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'B P'),
-                                        ("[Sin         74] B D     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'B D'),
-                                        ("[Sin         74] B S     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'B S'),
-                                        ("[Sin         74] P D     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'P D'),
-                                        ("[Sin         74] P S     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'P S'),
-                                        ("[Sin         74] D S     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'D S'),
-                                        ("[Sin         74] B P D   Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'B P D'),
-                                        ("[Sin         74] B P S   Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'B P S'),
-                                        ("[Sin         74] B D S   Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'B D S'),
-                                        ("[Sin         74] P D S   Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'P D S'),
-                                        ("[Sin         74] B P D S Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", 'B P D S')
+                                        ("[Sin         74] B P     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.BLEED | StatusIndicator.POISON),
+                                        ("[Sin         74] B D     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.BLEED | StatusIndicator.DISEASE),
+                                        ("[Sin         74] B S     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.BLEED | StatusIndicator.STUN),
+                                        ("[Sin         74] P D     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.POISON | StatusIndicator.DISEASE),
+                                        ("[Sin         74] P S     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.POISON | StatusIndicator.STUN),
+                                        ("[Sin         74] D S     Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.DISEASE | StatusIndicator.STUN),
+                                        ("[Sin         74] B P D   Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.BLEED | StatusIndicator.POISON | StatusIndicator.DISEASE),
+                                        ("[Sin         74] B P S   Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.BLEED | StatusIndicator.POISON | StatusIndicator.STUN),
+                                        ("[Sin         74] B D S   Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.BLEED | StatusIndicator.DISEASE | StatusIndicator.STUN),
+                                        ("[Sin         74] P D S   Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.POISON | StatusIndicator.DISEASE | StatusIndicator.STUN),
+                                        ("[Sin         74] B P D S Beautiful        500/500 (100%)  500/500 (100%)  418/731 ( 57%)", StatusIndicator.BLEED | StatusIndicator.POISON | StatusIndicator.DISEASE | StatusIndicator.STUN)
                                         ], ids=[
                                             "Bleed + Poison",
                                             "Bleed + Disease",
@@ -112,7 +112,121 @@ class TestGroupParser:
                                             "Bleed + Poison + Disease + Stun"
                                         ]
                                     )
-    def test_multiple_status_flags(self, input, expected):        
-        actual = parse_group_status(input)[0]['status']
+    def test_multiple_status_flags(self, input, expected: StatusIndicator):        
+        actual = parse_group_status(input)[0].Status
 
         assert actual == expected
+
+
+    @pytest.mark.parametrize("input,expected", argvalues=[
+                                                ("NewFollower follows you", "NewFollower"),
+                                                ("A vapor-shrouded mistwolf follows you", "A vapor-shrouded mistwolf")
+                                                ],
+                                                ids=[
+                                                "Non-Disguised_Non-Shapeshifted_Follower", 
+                                                "Disguised-Follower"
+                                                ]
+    )
+    def test_new_follower_results_in_new_group_member(self, input, expected):
+        results = parse_group_status(input)
+
+        assert len(results) == 1
+        assert results[0].Name == expected
+
+    
+    def test_existingGroupFollowedByNewMember_IndicatesNewMemberWithoutUpdatesToExpected(self):
+        raw_input = """Beautiful's group:
+[ Class        Lvl] Status     Name                 Hits               Fat                Power            
+[Sin            69]           Foo                  100/ 500 (100%)    474/ 500 ( 94%)    638/ 707 ( 90%)  
+[Skeleton       15]           Bar                  200/ 500 (100%)    300/ 500 ( 94%)    400/ 707 ( 90%)  
+
+A vapor-shrouded mistwolf follows you"""
+
+        matches = parse_group_status(raw_input) #  pattern.findall(raw_input)
+
+        assert len(matches) == 3
+
+    @pytest.mark.parametrize("includePets,expectedCount", [
+        (False, 1),
+        (True, 2)
+    ])
+    def test_include_pets_in_group_parse(self, includePets: bool, expectedCount: int):
+        raw_input = """Beautiful's group:
+
+[ Class      Lv] Status   Name              Hits            Fat             Power         
+[Sin         74]         Beautiful        500/500 (100%)  500/500 (100%)  556/731 ( 76%)  
+
+[mob         72]         angel of death   445/445 (100%)  445/445 (100%)  547/547 (100%)  """
+
+        groupMembers = parse_group_status(raw_input, includePets=includePets)
+
+        assert len(groupMembers) == expectedCount
+
+    def test_InputPrefixedWithCharstateBeforeInput_IgnoresCharstateAndCorrectlyParsesMember(self):
+        raw_input = r'���charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}��\x009\x00\x00\x00\x00\\2\x00\x00\x00\x00���charvitals {"hp":500,"maxhp":500,"mana":436,"maxmana":731,"moves":500,"maxmoves":500,"poisoned":false,"bleeding":false,"diseased":false,"stunned":false}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}���,\x00\x00\x00\x00���comm.channel {"chan":"say","msg":"You say \'follow again\'","player":"Beautiful"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charvitals {"hp":500,"maxhp":500,"mana":438,"maxmana":731,"moves":500,"maxmoves":500,"poisoned":false,"bleeding":false,"diseased":false,"stunned":false}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}�����charstate {"combat":"NORMAL","currentWeight":83,"maxWeight":250,"pos":"Standing"}��AnonymizedName follows you'
+        
+        matches = parse_group_status(raw_input)
+
+        assert len(matches) == 1
+        assert matches[0].Name == 'AnonymizedName'
+
+class TestLeavingGroupParser:
+    @pytest.mark.parametrize('input,expected', [
+                                                ('foo disbands from your group', 'foo'),
+                                                ('Foo disbands from your group', 'Foo'),
+                                                ('FOO DISBANDS FROM YOUR GROUP', 'FOO')
+                                                ],
+                                                ids=[
+                                                    'Lowercase input',
+                                                    'Mixedcase input',
+                                                    'Uppercase input',
+                                                ])
+    def test_GroupedMemberDisbands_IsCorrectlyParsed(self, input, expected):
+        leaver = parse_leaveGroup(input)
+        nameOfLeaver = leaver[0]
+
+        assert len(leaver) == 1
+        assert nameOfLeaver == expected
+    
+    @pytest.mark.parametrize('input,expected', [
+                                                ('foo disbands from the group', 'foo'),
+                                                ('foo disbands from your group', 'foo'),
+                                                ],
+                                                ids=[
+                                                    'Party you are PART-OF',
+                                                    'Party you are LEADING'
+                                                    ])
+    def test_WhetherMemberOfAPartyOrLeader_IsCorrectlyParsed(self, input, expected):
+        leaver = parse_leaveGroup(input)
+        nameOfLeaver = leaver[0]
+
+        assert len(leaver) == 1
+        assert nameOfLeaver == expected
+
+
+    @pytest.mark.parametrize('input,expected', [
+                                                ('An angel of death disbands from your group', 'An angel of death'),
+                                                ('A hand of justice disbands from your group.', 'A hand of justice'),
+                                                ],
+    )
+    def test_GroupedPetMember_DiesWhichIsConsideredLeaving_IsCorrectlyParsed(self, input, expected):
+        leavers = parse_leaveGroup(input)
+        nameOfLeaver = leavers[0]
+        
+        assert len(leavers) == 1
+        assert nameOfLeaver == expected
+    
+
+    def test_InputTextPrefixedWithCharstateBeforeInput_IgnoresCharstateAndCorrectlyParsesLeaver(self):
+        leavers = parse_leaveGroup(r'{"combat":"NORMAL","currentWeight":126,"maxWeight":438,"pos":"Standing"}��%U\x00\x00\x00\x00An angel of death disbands from your group.')
+        nameOfLeaver = leavers[0]
+
+        assert len(leavers) == 1
+        assert nameOfLeaver == 'An angel of death'
+
+    def test_ShapeshiftedMemberLeaves_IsCorrectlyParsed(self):
+        leavers = parse_leaveGroup('A vapor-shrouded mistwolf disbands from your group.')
+        nameOfLeaver = leavers[0]
+
+        assert len(leavers) == 1
+        assert nameOfLeaver == 'A vapor-shrouded mistwolf'

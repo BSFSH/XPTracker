@@ -1,9 +1,8 @@
 import time
 import re
+from Wingman.core.parser import parse_xp_message, parse_group_status, parse_leaveGroup
 from Wingman.core.input_receiver import InputReceiver
-# Ensure parse_group_status is imported from your parser refactor
-from Wingman.core.parser import parse_xp_message, parse_group_status
-
+from Wingman.core.group import Group
 
 class GameSession:
     def __init__(self, receiver: InputReceiver):
@@ -16,7 +15,9 @@ class GameSession:
         self.total_paused_duration = 0  # Total accumulated seconds spent paused
 
         # New: Store the latest snapshot of group members
-        self.latest_group_data = []
+        self.Group = Group()
+        
+        self.shouldRefreshGroupDisplay: bool = False
 
     # --- NEW: Time Calculation Helper ---
     def get_active_duration(self):
@@ -62,7 +63,7 @@ class GameSession:
     def reset(self):
         self.total_xp = 0
         self.start_time = time.time()
-        self.latest_group_data = []
+        self.Group.Disband()
 
         # Reset pause data so we don't start with negative time or stuck pauses
         self.pause_start_time = None
@@ -77,16 +78,21 @@ class GameSession:
         seconds = elapsed % 60
         return f"{hours:02}:{minutes:02}:{seconds:02}"
 
-    def get_latest_group_data(self):
-        """Returns the current list of party members for the GUI."""
-        return self.latest_group_data
-
     def process_queue(self):
         """
         Pops items, calculates XP, and parses Group stats.
         Returns a list of text logs for the GUI.
         """
         logs = []
+
+        def needToClearGroupData(line: str) -> bool:
+            if "group:" in line and re.search(r"\S+'s group:", line):
+                return True
+            
+            if "You disband from " in line:
+                return True
+
+            return False
 
         # Process everything currently in the stack
         while True:
@@ -102,14 +108,19 @@ class GameSession:
             # if "group:" in line and re.search(r"^\S+'s group:", line):
 
             # NEW: Remove the '^' to allow timestamps before the name
-            if "group:" in line and re.search(r"\S+'s group:", line):
-                self.latest_group_data = []
+            if needToClearGroupData(line):
+                self.shouldRefreshGroupDisplay = True
+                self.Group.Disband()
 
             # Check for member rows in this line
             found_members = parse_group_status(line)
             if found_members:
                 # Add found members to our "dashboard" list
-                self.latest_group_data.extend(found_members)
+                self.Group.AddMembers(found_members)
+            
+            leavingMembers = parse_leaveGroup(line)
+            if leavingMembers:
+                self.Group.RemoveMembers(leavingMembers)
 
             # --- Logic 2: XP Detection ---
             xp_gain = parse_xp_message(line)

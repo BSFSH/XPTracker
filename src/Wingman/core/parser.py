@@ -1,6 +1,8 @@
 import re
-from typing import List, Dict, Any
-
+from typing import List
+from Wingman.core.status_indicator import StatusIndicator
+from Wingman.core.resource_bar import ResourceBar
+from Wingman.core.character import Character
 
 def parse_xp_message(text_block: str) -> int:
     """Parses text for XP gains."""
@@ -15,46 +17,87 @@ def parse_xp_message(text_block: str) -> int:
 
     return total_xp
 
-
-def parse_group_status(text_block: str) -> List[Dict[str, Any]]:
+def parse_group_status(text_block: str, includePets: bool = False) -> List[Character]:
     """
     Parses a text block for group member status.
-    Returns a list of dictionaries for valid rows found.
+
+    :returns: Returns a list of dictionaries for valid rows found.
     """
-    members = []
+    members: List[Character] = []
 
     # Regex Breakdown:
-    # 1. Capture Class and Level inside brackets: [Orc 40]
-    # 2. Capture optional Status (if present)
-    # 3. Capture Name
-    # 4. Capture HP, Fat, Power (e.g. "227/ 394") ignoring the percentages
+    classAndLevel = r"\[\s*(?P<cls>[A-Za-z]+)\s+(?P<lvl>\d+)\s*\]"
+    spaceAfterBracket = r"\s+"
+    statusIndicators = r"(?P<status>(?:[BPDS]\s)*)"
+    characterName = r"(?P<name>.+?)"
+    health = r"\s+(?P<hp>\d+/\s*\d+)"
+    skipPercentIndicators = r".*?"
+    fatigue = r"\s+(?P<fat>\d+/\s*\d+)"
+    power = r"\s+(?P<pwr>\d+/\s*\d+)"
 
-    pattern = re.compile(
-        r"\[\s*(?P<cls>[A-Za-z]+)\s+(?P<lvl>\d+)\s*\]"  # [Class Lvl]
-        r"\s+"  # Space after bracket
-        r"(?P<status>(?:[BPDS]\s)*)"  # Status: Only B, P, D, S followed by space
-        r"(?P<name>.+?)"  # Name: Capture anything (lazy match)
-        r"\s+"  # Space before HP (anchors the name end)
-        r"(?P<hp>\d+/\s*\d+)"  # HP
-        r".*?"  # Skip percent
-        r"\s+(?P<fat>\d+/\s*\d+)"  # Fat
-        r".*?"  # Skip percent
-        r"\s+(?P<pwr>\d+/\s*\d+)",  # Power
+    currentPartyMember = classAndLevel + spaceAfterBracket + statusIndicators + characterName \
+                        + health + skipPercentIndicators \
+                        + fatigue + skipPercentIndicators \
+                        + power
+
+    newFollowersName = r"(?P<NewGroupMember>[A-Za-z -]+)"
+    newFollower = f"{newFollowersName} follows you"
+
+    groupParserString = f"({currentPartyMember}|{newFollower})"
+
+    pattern = re.compile(groupParserString,
         re.DOTALL
     )
 
+    def isCurrentPartyMember(line: str) -> bool:
+        return ']' in line and '/' in line
+
+    def isNewFollower(line: str) -> bool:
+        return 'follows you' in line
+
     for line in text_block.splitlines():
-        if "]" in line and "/" in line:
+        if isCurrentPartyMember(line):
             match = pattern.search(line)
             if match:
                 data = match.groupdict()
+                data['hp'].split('/')
+                data['fat'].split('/')
+                data['pwr'].split('/')
 
+                c = Character(data['name'],
+                              data['cls'],
+                              int(data['lvl']),
+                              StatusIndicator.FromString(data['status']),
+                              ResourceBar.FromString(data['hp']),
+                              ResourceBar.FromString(data['fat']),
+                              ResourceBar.FromString(data['pwr']))
                 # NEW: Exclude pets/mobs immediately
-                if data['cls'].lower() == 'mob':
+                if not includePets and c.ClassProfession == 'mob':
                     continue
 
-                data['status'] = data['status'].strip()
-                data['name'] = data['name'].strip()
-                members.append(data)
+                members.append(c)
+
+        elif isNewFollower(line):
+            match = pattern.search(line)
+            if match:
+                data = match.groupdict()
+                c = Character(data['NewGroupMember'],
+                              isNewFollower=True)
+                members.append(c)
+
+    return members
+
+def parse_leaveGroup(text: str) -> List[str]:
+    """Input of text to check.
+
+    :param text: The text to check for a leaving group member.
+
+    :returns: The name of the member(s) who is/are leaving the group."""
+    pattern = re.compile(r"(?P<leavingMember>([A-Za-z -]+)) disbands from (your|the) group", re.IGNORECASE)
+
+    members = []
+    leavingMembers = pattern.findall(text)
+    for member in leavingMembers:
+        members.append(member[1].strip())
 
     return members
